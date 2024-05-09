@@ -1,3 +1,5 @@
+import time
+
 import aiomysql
 
 from config import DB2_CONFIG
@@ -42,7 +44,7 @@ async def get_players_steamids():
     return steam_ids
 
 
-async def insert_records(records: list[dict] | dict):
+async def insert_records(records: list[dict] | dict, table='records'):
     if not records:
         return
 
@@ -77,7 +79,7 @@ async def insert_records(records: list[dict] | dict):
             if record
         ]
 
-        insert_query = """
+        insert_query = f"""
             INSERT INTO records (
                 id, steamid64, player_name, steam_id, server_id, map_id,
                 stage, mode, tickrate, time, teleports, created_on, updated_on,

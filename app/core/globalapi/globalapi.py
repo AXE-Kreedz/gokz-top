@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from json import JSONDecodeError
 
 from aiohttp import ClientSession
@@ -11,15 +12,14 @@ from app import logger
 URL = "https://kztimerglobal.com/api/v2.0/"
 
 
-async def get_record(record_id: int) -> dict:
+async def get_record(record_id: int) -> dict | None:
     url = f"{URL}records/{record_id}"
 
     async with ClientSession() as session:
         async with session.get(url) as resp:
             data = await resp.text()
             if data == 'null':
-                logger.info(f"record:{record_id} is null")
-                raise Exception(f"Record id: {record_id} is None!")
+                return None
 
             try:
                 data = json.loads(data)
@@ -51,16 +51,21 @@ async def get_personal_global_records(steamid, mode_str="kz_timer", has_tp=True,
             return None
 
 
-async def get_personal_all_records(steamid) -> list:
-    tasks = [
-        get_personal_global_records(steamid, "kz_timer", True),
-        get_personal_global_records(steamid, "kz_timer", False),
-        get_personal_global_records(steamid, "kz_simple", True),
-        get_personal_global_records(steamid, "kz_simple", False),
-        get_personal_global_records(steamid, "kz_vanilla", True),
-        get_personal_global_records(steamid, "kz_vanilla", False),
-    ]
-    results = await asyncio.gather(*tasks)
+async def get_personal_all_records(steamid, mode=None) -> list:
+    tasks = []
 
+    if mode:
+        tasks.append(get_personal_global_records(steamid, mode, True))
+        tasks.append(get_personal_global_records(steamid, mode, False))
+    else:
+        tasks.extend([
+            get_personal_global_records(steamid, "kz_timer", True),
+            get_personal_global_records(steamid, "kz_timer", False),
+            get_personal_global_records(steamid, "kz_simple", True),
+            get_personal_global_records(steamid, "kz_simple", False),
+            get_personal_global_records(steamid, "kz_vanilla", True),
+            get_personal_global_records(steamid, "kz_vanilla", False),
+        ])
+    results = await asyncio.gather(*tasks)
     records = [record for result in results if result is not None for record in result]
     return records
