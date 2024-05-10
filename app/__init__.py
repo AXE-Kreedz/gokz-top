@@ -15,5 +15,5 @@ file_handler = logging.FileHandler('logs/logs.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-logger.addHandler(file_handler)
+# logger.addHandler(file_handler)
 logger.addHandler(stdout_handler)

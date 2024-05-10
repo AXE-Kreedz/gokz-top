@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from app.core.database.records import get_latest_record_id, insert_records
 
 from app import logger
-from app.core.globalapi.globalapi import get_record
+from app.core.globalapi.globalapi import get_record, personal_best
 
 
 async def update_records(end_id=30_000_000):
@@ -27,12 +27,15 @@ async def update_records(end_id=30_000_000):
                     pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
                     time.sleep(300)
 
+            pb = await personal_best(data['steamid64'], data['map_id'], data['mode'], True if data['teleports'] else False)
+            if pb.get('id') == data['id']:
+                data['points'] = pb['points']
             await insert_records(data)
 
             dt = datetime.fromisoformat(data['created_on'])
             dt = dt + timedelta(hours=8)
             pbar.set_description(
-                f"Updating {record_id:,} - {dt.strftime('%Y-%m-%d %H:%M:%S')}"
+                f"Updating {record_id:,} - {data['points']}pts - {dt.strftime('%H:%M:%S')}"
             )
             pbar.update(1)
 

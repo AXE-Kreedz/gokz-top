@@ -1,5 +1,3 @@
-import time
-
 import aiomysql
 
 from config import DB2_CONFIG
@@ -44,7 +42,7 @@ async def get_players_steamids():
     return steam_ids
 
 
-async def insert_records(records: list[dict] | dict, table='records'):
+async def insert_records(records: list[dict] | dict):
     if not records:
         return
 
@@ -113,3 +111,26 @@ async def insert_records(records: list[dict] | dict, table='records'):
         await conn.commit()
     conn.close()
 
+
+async def update_points(records):
+    if not records:
+        return
+
+    if isinstance(records, dict):
+        records = [records]
+
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor(aiomysql.DictCursor) as cursor:
+        ids = []
+        cases = []
+        for record in records:
+            ids.append(str(record["id"]))
+            cases.append(f"WHEN id = {record['id']} THEN {record['points']}")
+
+        update_query = f"""
+            UPDATE records
+            SET points = CASE {' '.join(cases)} END
+            WHERE id IN ({', '.join(ids)})
+        """
+        await cursor.execute(update_query)
+        await conn.commit()

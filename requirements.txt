@@ -7,3 +7,5 @@ requests~=2.31.0
 steam~=1.4.4
 tqdm~=4.66.4
 pytz~=2024.1
+PyMySQL~=1.1.0
+urllib3~=2.2.1
