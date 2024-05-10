@@ -59,7 +59,7 @@ async def get_personal_global_records(steamid, mode_str="kz_timer", has_tp=True,
                 try:
                     data = await response.json(content_type=None)
                     return data
-                except TooManyRequestsException:
+                except JSONDecodeError:
                     msg = await response.text()
                     logging.warning(f"Failed to get records for {steamid64} in {mode_str} mode. Response: {msg}")
                     raise TooManyRequestsException(msg)

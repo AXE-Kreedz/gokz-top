@@ -29,7 +29,7 @@ async def update_personal_records(steamids, cache=True):
             data = None
             while data is None:
                 try:
-                    data = await get_personal_all_records(steamid)
+                    data = await get_personal_all_records(steamid, 'kz_timer')
                 except TooManyRequestsException as e:
                     pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
                     pbar.set_description(f"Updating {steamid} {e}", refresh=True)

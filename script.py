@@ -26,8 +26,9 @@ async def update_records(end_id=30_000_000):
                     logger.warning(e)
                     pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
                     time.sleep(300)
-
-            pb = await personal_best(data['steamid64'], data['map_id'], data['mode'], True if data['teleports'] else False)
+            pb = None
+            while pb is None:
+                pb = await personal_best(data['steamid64'], data['map_id'], data['mode'], True if data['teleports'] else False)
             if pb.get('id') == data['id']:
                 data['points'] = pb['points']
             await insert_records(data)
