@@ -1,5 +1,6 @@
 import asyncio
 import time
+import sys
 
 from tqdm import tqdm
 from datetime import datetime, timedelta
@@ -53,4 +54,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Exiting...')
         time.sleep(1)
-        exit(0)
+        sys.exit(0)
