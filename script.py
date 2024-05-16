@@ -39,14 +39,13 @@ async def update_records(end_id=30_000_000):
 
             dt = datetime.fromisoformat(data['created_on'])
             dt = dt + timedelta(hours=8)
-            pbar.set_description(
-                f"Updating {record_id:,} - {data['points']}pts - {dt.strftime('%H:%M:%S')}"
-            )
+            pbar.set_description(f"Updating {record_id:,} - {data['points']}pts - {dt.strftime('%H:%M:%S')}")
             pbar.update(1)
 
 
 async def main():
     await update_records()
+
 
 if __name__ == '__main__':
     logger.setLevel('INFO')

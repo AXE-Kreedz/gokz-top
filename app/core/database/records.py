@@ -14,6 +14,27 @@ async def get_latest_record_id():
             return latest_id[0]
 
 
+async def fetch_tp_pb_records(steam_id):
+    steam_id = conv_steamid(steam_id)
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor(aiomysql.DictCursor) as cursor:
+        select_query = f"""
+            SELECT r.id, r.player_name, r.steam_id, r.server_id, r.map_id, r.stage, r.mode, r.`time`, r.teleports, r.created_on, r.server_name, r.map_name, r.points
+            FROM records r
+            INNER JOIN (
+                SELECT map_name, mode, MIN(`time`) as min_time
+                FROM records
+                WHERE steam_id = %s AND stage = 0
+                GROUP BY map_name, mode
+            ) pb ON r.map_name = pb.map_name AND r.mode = pb.mode AND r.`time` = pb.min_time
+            WHERE r.steam_id = %s AND r.stage = 0
+        """
+        await cursor.execute(select_query, (steam_id, steam_id))
+        records = await cursor.fetchall()
+    conn.close()
+    return records
+
+
 async def fetch_personal_records(steam_id):
     steam_id = conv_steamid(steam_id)
     conn = await aiomysql.connect(**DB2_CONFIG)
