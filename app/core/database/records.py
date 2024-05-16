@@ -14,28 +14,32 @@ async def get_latest_record_id():
             return latest_id[0]
 
 
-async def fetch_tp_pb_records(steam_id):
-    steam_id = conv_steamid(steam_id)
-    conn = await aiomysql.connect(**DB2_CONFIG)
-    async with conn.cursor(aiomysql.DictCursor) as cursor:
-        select_query = f"""
-            SELECT r.id, r.player_name, r.steam_id, r.server_id, r.map_id, r.stage, r.mode, r.`time`, r.teleports, r.created_on, r.server_name, r.map_name, r.points
-            FROM records r
-            INNER JOIN (
-                SELECT map_name, mode, MIN(`time`) as min_time
-                FROM records
-                WHERE steam_id = %s AND stage = 0
-                GROUP BY map_name, mode
-            ) pb ON r.map_name = pb.map_name AND r.mode = pb.mode AND r.`time` = pb.min_time
-            WHERE r.steam_id = %s AND r.stage = 0
-        """
-        await cursor.execute(select_query, (steam_id, steam_id))
-        records = await cursor.fetchall()
-    conn.close()
-    return records
+async def fetch_pb_records(steam_id, mode='kz_timer'):
+    records = await fetch_personal_records(steam_id, mode)
+    pb_records = []
+
+    records_by_map = {}
+    for record in records:
+        if record['map_name'] not in records_by_map:
+            records_by_map[record['map_name']] = {'tp': None, 'pro': None}
+
+        if record['teleports'] > 0:
+            if records_by_map[record['map_name']]['tp'] is None or record['time'] < records_by_map[record['map_name']]['tp']['time']:
+                records_by_map[record['map_name']]['tp'] = record
+        else:
+            if records_by_map[record['map_name']]['pro'] is None or record['time'] < records_by_map[record['map_name']]['pro']['time']:
+                records_by_map[record['map_name']]['pro'] = record
+
+    for map_name, records in records_by_map.items():
+        if records['tp'] is not None:
+            pb_records.append(records['tp'])
+        if records['pro'] is not None:
+            pb_records.append(records['pro'])
+
+    return pb_records
 
 
-async def fetch_personal_records(steam_id):
+async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None):
     steam_id = conv_steamid(steam_id)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -44,7 +48,22 @@ async def fetch_personal_records(steam_id):
             FROM records
             WHERE steam_id = %s AND stage = 0
         """
-        await cursor.execute(select_query, steam_id)
+        params = [steam_id]
+
+        if mode is not None:
+            select_query += " AND mode = %s"
+            params.append(mode)
+
+        if map_name is not None:
+            select_query += " AND map_name = %s"
+            params.append(map_name)
+
+        if has_tp is True:
+            select_query += " AND teleports > 0"
+        elif has_tp is False:
+            select_query += " AND teleports = 0"
+
+        await cursor.execute(select_query, params)
         records = await cursor.fetchall()
     conn.close()
     return records
