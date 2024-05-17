@@ -1,6 +1,6 @@
 import aiomysql
 
-from config import DB2_CONFIG
+from config import DB2_CONFIG, MAP_TIERS
 from app.core.utils.steam_user import conv_steamid
 
 
@@ -20,6 +20,8 @@ async def fetch_pb_records(steam_id, mode='kz_timer'):
 
     records_by_map = {}
     for record in records:
+        if record['map_name'] not in MAP_TIERS.keys():
+            continue
         if record['map_name'] not in records_by_map:
             records_by_map[record['map_name']] = {'tp': None, 'pro': None}
 

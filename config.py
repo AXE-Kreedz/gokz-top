@@ -1,12 +1,15 @@
 import json
 import os
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
-with open('jsons/map_tiers.json', 'r') as f:
-    MAP_TIERS = json.load(f)
+script_dir = os.path.dirname(os.path.realpath(__file__))
+map_tiers_path = os.path.join(script_dir, 'jsons/map_tiers.json')
+
+
+with open(map_tiers_path, 'r') as f:
+    MAP_TIERS: dict = json.load(f)
 
 DB2_CONFIG = {
     "user": os.getenv("DB_USER"),
