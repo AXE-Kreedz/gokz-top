@@ -4,6 +4,7 @@ import aiohttp
 from aiohttp import ClientTimeout
 from steam.steamid import SteamID
 
+from app import logger
 from config import STEAM_API_KEY
 
 
@@ -74,10 +75,12 @@ async def get_steam_user_info(steamid, timeout=5.0) -> dict | None:
                 except aiohttp.client_exceptions.ContentTypeError:
                     return None
     except asyncio.TimeoutError:
+        logger.warning(f"get_steam_user_info: Timeout for {steamid}")
         return None
 
     try:
         player_data = data['response']['players'][0]
         return player_data
     except IndexError:
+        logger.warning(f"get_steam_user_info: No player found for {steamid}:\n{data}")
         return None

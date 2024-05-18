@@ -1,5 +1,6 @@
 import aiomysql
 
+from app import logger
 from config import DB2_CONFIG, MAP_TIERS
 from app.core.utils.steam_user import conv_steamid
 
@@ -42,6 +43,7 @@ async def fetch_pb_records(steam_id, mode='kz_timer'):
 
 
 async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None):
+    logger.debug(f"Fetching records for {steam_id}")
     steam_id = conv_steamid(steam_id)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -68,6 +70,7 @@ async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None
         await cursor.execute(select_query, params)
         records = await cursor.fetchall()
     conn.close()
+    logger.debug(f"Fetched {len(records)} records for {steam_id}")
     return records
 
 

@@ -6,6 +6,7 @@ from json import JSONDecodeError
 
 from aiohttp import ClientSession
 
+from app.core.database.records import insert_records, update_points
 from app.core.globalapi import TooManyRequestsException
 from app.core.utils.steam_user import conv_steamid
 from app import logger
@@ -68,7 +69,7 @@ async def get_personal_global_records(steamid, mode_str="kz_timer", has_tp=True,
             raise e
 
 
-async def get_personal_all_records(steamid, mode=None) -> list:
+async def get_personal_all_records(steamid, mode=None, update_db=False) -> list:
     tasks = []
     if mode:
         tasks.append(get_personal_global_records(steamid, mode, True))
@@ -85,4 +86,6 @@ async def get_personal_all_records(steamid, mode=None) -> list:
     results = await asyncio.gather(*tasks)
 
     records = [record for result in results if result is not None for record in result]
+    if update_db:
+        await update_points(records)
     return records
