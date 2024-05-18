@@ -15,10 +15,8 @@ async def get_latest_record_id():
             return latest_id[0]
 
 
-async def fetch_pb_records(steam_id, mode='kz_timer'):
-    records = await fetch_personal_records(steam_id, mode)
+def filter_pb_records(records):
     pb_records = []
-
     records_by_map = {}
     for record in records:
         if record['map_name'] not in MAP_TIERS.keys():
@@ -40,6 +38,11 @@ async def fetch_pb_records(steam_id, mode='kz_timer'):
             pb_records.append(records['pro'])
 
     return pb_records
+
+
+async def fetch_pb_records(steam_id, mode='kz_timer'):
+    records = await fetch_personal_records(steam_id, mode)
+    return filter_pb_records(records)
 
 
 async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None):

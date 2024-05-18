@@ -1,8 +1,6 @@
-import asyncio
+from collections import Counter
 
-from app.core.database.records import fetch_pb_records
 from app.core.utils.kreedz import get_map_tier
-from config import MAP_TIERS
 
 tier_count = {
     7: 24,
@@ -18,6 +16,11 @@ def calc_player_data(rcds):
     player_data = {'name': rcds[-1]['player_name'], 'steamid': rcds[-1]['steam_id'], 'avatar_hash': ''}
     pts_avgs = {}
     counts = {}
+
+    server_counts = Counter(rcd['server_name'] for rcd in rcds)
+    most_played_server = server_counts.most_common(1)[0][0]
+    player_data['most_played_server'] = most_played_server
+
     for tier in range(3, 8):
         tier_records = [rcd for rcd in rcds if get_map_tier(rcd['map_name']) == tier]
         pts_avgs[f'pts_avg_t{tier}'] = int(sum(rcd['points'] for rcd in tier_records) / len(tier_records) if tier_records else 0)
