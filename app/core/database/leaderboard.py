@@ -63,6 +63,7 @@ async def query_leaderboard(offset=0, limit=20):
     conn.close()
     total_player = 400_000
     for i, player in enumerate(result, start=offset+1):
+        player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
         player['rank'] = i
         player['percentage'] = "{:.3%}".format(i / total_player)
         player['steamid64'] = str(conv_steamid(player['steamid'], 64))
@@ -85,6 +86,7 @@ async def query_player_rank(steamid):
     conn.close()
 
     total_player = 400_000
+    result['pts_skill'] = int(result['pts_skill'] * 100) / 100.0
     result['percentage'] = "{:.3%}".format(result['rank'] / total_player)
     result['steamid64'] = str(conv_steamid(result['steamid'], 64))
     return result if result else None
