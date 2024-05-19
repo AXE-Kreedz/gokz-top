@@ -1,19 +1,10 @@
 import aiomysql
 
-from app.core.utils.steam_user import get_steam_user_info
+from app.core.utils.steam_user import conv_steamid
 from config import DB2_CONFIG
 
 
-async def update_player_rank(player_data, update_steam_info=True):
-    if update_steam_info:
-        steam_info = await get_steam_user_info(player_data['steamid'])
-        if steam_info:
-            player_data['name'] = steam_info['personaname']
-            player_data['avatar_hash'] = steam_info['avatarhash']
-    await insert_leaderboard(player_data)
-
-
-async def insert_leaderboard(player_data):
+async def update_player_rank(player_data):
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor() as cursor:
         insert_query = """
@@ -70,12 +61,16 @@ async def query_leaderboard(offset=0, limit=20):
         await cursor.execute(query, (limit, offset))
         result = await cursor.fetchall()
     conn.close()
+    total_player = 400_000
     for i, player in enumerate(result, start=offset+1):
         player['rank'] = i
+        player['percentage'] = "{:.3%}".format(i / total_player)
+        player['steamid64'] = str(conv_steamid(player['steamid'], 64))
     return result
 
 
 async def query_player_rank(steamid):
+    steamid = conv_steamid(steamid)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
         query = """
@@ -88,4 +83,20 @@ async def query_player_rank(steamid):
         await cursor.execute(query, (steamid,))
         result = await cursor.fetchone()
     conn.close()
+
+    total_player = 400_000
+    result['percentage'] = "{:.3%}".format(result['rank'] / total_player)
+    result['steamid64'] = str(conv_steamid(result['steamid'], 64))
     return result if result else None
+
+
+async def get_total_players():
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor() as cursor:
+        query = """
+            SELECT COUNT(steamid) FROM leaderboard
+        """
+        await cursor.execute(query)
+        result = await cursor.fetchone()
+    conn.close()
+    return result[0] if result else 0

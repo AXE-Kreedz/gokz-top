@@ -6,29 +6,20 @@ import time
 from tqdm import tqdm
 
 from app import logger
-from app.core.database.leaderboard import update_player_rank
-from app.core.database.records import fetch_pb_records, filter_pb_records
-from app.core.globalapi.globalapi import get_personal_all_records
-from app.core.skill_points.skill_points import calc_skill_pts
+from app.core.skill_points.update import update_player_skill_pts
 
 
-async def updating_players_rank(steamids: list, from_local=True, update_steam_info=True):
-    for steamid in tqdm(steamids, desc='Updating Players Ranks', colour='blue', unit='player', ncols=100):
-        if from_local:
-            records = await fetch_pb_records(steamid)
-        else:
-            records = await get_personal_all_records(steamid, 'kz_timer', True)
-            records = filter_pb_records(records)
-
-        if not records:
-            logger.debug(f"No records found for {steamid}")
-            continue
-
-        player_data = calc_skill_pts(records)
-        await update_player_rank(player_data, update_steam_info=update_steam_info)
+async def updating_players_rank(steamids: list, from_local=True, update_steam_info=True, step=2):
+    progress_bar = tqdm(total=len(steamids), desc='Updating Players Ranks', colour='blue', unit='player', ncols=100)
+    for i in range(0, len(steamids), step):
+        progress_bar.set_description(f"Updating Players Ranks {i + 1}/{len(steamids)}")
+        batch = steamids[i:i + step]
+        await asyncio.gather(*(update_player_skill_pts(steamid, 'kz_timer', from_local, update_steam_info) for steamid in batch))
+        progress_bar.update(len(batch))
+    progress_bar.close()
 
 
-# Finished: 1, 9
+# Finished: 1, 9, 0, 8
 async def main(part):
     logger.info(f"Updating skill points for part {part}")
     with open(f'jsons/steamids_{part}.json', 'r') as f:
@@ -37,12 +28,10 @@ async def main(part):
 
 
 if __name__ == '__main__':
-    logger.setLevel('INFO')
-
+    logger.setLevel('WARNING')
     parser = argparse.ArgumentParser(description="Update Player Skill Points")
-    parser.add_argument('part', type=int, help='An integer for the accumulator(0-9)')
+    parser.add_argument('part', type=int)
     args = parser.parse_args()
-
     try:
         asyncio.run(main(args.part))
     except KeyboardInterrupt:
