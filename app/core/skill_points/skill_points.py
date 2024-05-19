@@ -140,21 +140,21 @@ def calc_skill_pts(rcds, total_count_map=tier_count['total'], total_count_map5=t
 
 def get_rank_name(skill_pts):
     pts = skill_pts
-    if pts > 9.0:
+    if pts >= 9.0:
         return 'Legend'
-    elif pts > 8.0:
+    elif pts >= 8.0:
         return 'Master'
-    elif pts > 7.0:
+    elif pts >= 7.0:
         return 'Pro'
-    elif pts > 6.0:
+    elif pts >= 6.0:
         return 'Expert'
-    elif pts > 5.0:
+    elif pts >= 5.0:
         return 'Skilled'
-    elif pts > 4.0:
+    elif pts >= 4.0:
         return 'Regular'
-    elif pts > 3.0:
+    elif pts >= 3.0:
         return 'Casual'
-    elif pts > 2.0:
+    elif pts >= 2.5:
         return 'Beginner'
     else:
         return 'New'
