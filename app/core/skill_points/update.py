@@ -24,4 +24,4 @@ async def update_player_skill_pts(steamid: str | int, mode='kz_timer', from_loca
         if steam_info:
             player_data['name'] = steam_info['personaname']
             player_data['avatar_hash'] = steam_info['avatarhash']
-    await update_player_rank(player_data)
+    await update_player_rank(player_data, mode=mode)

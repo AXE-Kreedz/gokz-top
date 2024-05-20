@@ -8,8 +8,6 @@ from app.routers.leaderboard import router
 app = FastAPI(
     # docs_url=None,
     title='gokz.top',
-    root_path='/api',
-    openapi_prefix='/api',
 )
 app.add_middleware(
     middleware_class=CORSMiddleware,
@@ -25,4 +23,4 @@ app.include_router(router)
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return RedirectResponse(url="/api/docs")
+    return RedirectResponse(url="/docs")

@@ -4,11 +4,102 @@ from app.core.utils.steam_user import conv_steamid
 from config import DB2_CONFIG
 
 
-async def update_player_rank(player_data):
+def get_table_name(mode):
+    if mode == 'kz_timer':
+        return 'leaderboard'
+    elif mode == 'kz_simple':
+        return 'leaderboard_skz'
+    elif mode == 'kz_vanilla':
+        return 'leaderboard_vnl'
+
+
+async def search_player_by_name(name) -> list:
+    try:
+        steamid = conv_steamid(name)
+    except ValueError:
+        steamid = None
+    if steamid:
+        data = await query_player_rank(steamid)
+        if data:
+            return [{
+                'name': data['name'],
+                'steamid': data['steamid'],
+                'pts_skill': data['pts_skill'],
+                'avatar_hash': data['avatar_hash'],
+                'steamid64': str(conv_steamid(data['steamid'], 64)),
+            }]
+
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor(aiomysql.DictCursor) as cursor:
+        # Query for exact matches
+        exact_query = """
+            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+            WHERE name = %s LIMIT 10
+        """
+        await cursor.execute(exact_query, (name,))
+        exact_result = await cursor.fetchall()
+
+        startswith_query = """
+            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+            WHERE name LIKE %s LIMIT 10
+        """
+        await cursor.execute(startswith_query, (name + '%',))
+        startswith_result = await cursor.fetchall()
+
+        # Query for partial matches
+        partial_query = """
+            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+            WHERE name LIKE %s LIMIT 10
+        """
+        await cursor.execute(partial_query, ('%' + name + '%',))
+        partial_result = await cursor.fetchall()
+    conn.close()
+
+    exact_result = list(exact_result)
+    startswith_result = list(startswith_result)
+    partial_result = list(partial_result)
+    all_results = exact_result + startswith_result + partial_result
+    unique_results = {player['steamid']: player for player in all_results}
+    result = list(unique_results.values())[:10]
+
+    for player in result:
+        player['steamid64'] = str(conv_steamid(player['steamid'], 64))
+    return result
+
+
+async def get_steamids_with_empty_avatar():
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor() as cursor:
-        insert_query = """
-            INSERT INTO leaderboard (
+        query = """
+            SELECT steamid FROM leaderboard
+            WHERE avatar_hash = ''
+            ORDER BY pts_skill DESC
+        """
+        await cursor.execute(query)
+        result = await cursor.fetchall()
+    conn.close()
+    return [row[0] for row in result]
+
+
+async def update_avatar_hash(steamid, avatar_hash):
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor() as cursor:
+        query = """
+            UPDATE leaderboard
+            SET avatar_hash = %s
+            WHERE steamid = %s
+        """
+        await cursor.execute(query, (avatar_hash, steamid))
+        await conn.commit()
+    conn.close()
+
+
+async def update_player_rank(player_data, mode='kz_timer'):
+    table_name = get_table_name(mode)
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor() as cursor:
+        insert_query = f"""
+            INSERT INTO {table_name} (
                 steamid, name, pts_skill, rank_name, most_played_server, avatar_hash, pts_avg_t5, pts_avg_t6, pts_avg_t7, pts_avg,
                 pts_avg_pro, pts_avg_tp, total_points, count_t5, count_t6, count_t7, count_p1000_tp, count_p1000_pro,
                 count_p900, count_p800, count, count_t567_p900, count_t567_p800, count_t567_pro, count_pro, count_tp
@@ -23,7 +114,7 @@ async def update_player_rank(player_data):
                 pts_skill = new.pts_skill,
                 rank_name = new.rank_name,
                 most_played_server = new.most_played_server,
-                avatar_hash = IF(new.avatar_hash = '', leaderboard.avatar_hash, new.avatar_hash),
+                avatar_hash = IF(new.avatar_hash = '', {table_name}.avatar_hash, new.avatar_hash),
                 pts_avg_t5 = new.pts_avg_t5,
                 pts_avg_t6 = new.pts_avg_t6,
                 pts_avg_t7 = new.pts_avg_t7,
@@ -50,19 +141,20 @@ async def update_player_rank(player_data):
     conn.close()
 
 
-async def query_leaderboard(offset=0, limit=20):
+async def query_leaderboard(offset=0, limit=20, mode='kz_timer'):
+    table_name = get_table_name(mode)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
-        query = """
-            SELECT * FROM leaderboard
+        query = f"""
+            SELECT * FROM {table_name}
             ORDER BY pts_skill DESC
             LIMIT %s OFFSET %s
         """
         await cursor.execute(query, (limit, offset))
         result = await cursor.fetchall()
     conn.close()
-    total_player = 400_000
-    for i, player in enumerate(result, start=offset+1):
+    total_player = 225245
+    for i, player in enumerate(result, start=offset + 1):
         player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
         player['rank'] = i
         player['percentage'] = "{:.3%}".format(i / total_player)
@@ -70,14 +162,15 @@ async def query_leaderboard(offset=0, limit=20):
     return result
 
 
-async def query_player_rank(steamid):
+async def query_player_rank(steamid, mode='kz_timer'):
+    table_name = get_table_name(mode)
     steamid = conv_steamid(steamid)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
-        query = """
+        query = f"""
             SELECT * FROM (
                 SELECT *, ROW_NUMBER() OVER (ORDER BY pts_skill DESC) as `rank`
-                FROM leaderboard
+                FROM {table_name}
             ) as leaderboard_with_ranks
             WHERE steamid = %s
         """
@@ -85,18 +178,19 @@ async def query_player_rank(steamid):
         result = await cursor.fetchone()
     conn.close()
 
-    total_player = 400_000
+    total_player = 225245
     result['pts_skill'] = int(result['pts_skill'] * 100) / 100.0
     result['percentage'] = "{:.3%}".format(result['rank'] / total_player)
     result['steamid64'] = str(conv_steamid(result['steamid'], 64))
     return result if result else None
 
 
-async def get_total_players():
+async def get_total_players(mode='kz_timer'):
+    table_name = get_table_name(mode)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor() as cursor:
-        query = """
-            SELECT COUNT(steamid) FROM leaderboard
+        query = f"""
+            SELECT COUNT(steamid) FROM {table_name}
         """
         await cursor.execute(query)
         result = await cursor.fetchone()

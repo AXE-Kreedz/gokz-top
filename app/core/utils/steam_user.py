@@ -10,7 +10,6 @@ from config import STEAM_API_KEY
 
 def conv_steamid(steamid, target_type: int = 2, url=False):
     steamid = SteamID(steamid)
-    logger.debug(f"conv_steamid: {steamid}")
     if steamid.is_valid() is False:
         raise ValueError(f"Invalid SteamID: {steamid}")
 
@@ -74,6 +73,7 @@ async def get_steam_user_info(steamid, timeout=5.0) -> dict | None:
                 try:
                     data = await response.json()
                 except aiohttp.client_exceptions.ContentTypeError:
+                    logger.warning(f"get_steam_user_info: ContentTypeError for {steamid}, {response}")
                     return None
     except asyncio.TimeoutError:
         logger.warning(f"get_steam_user_info: Timeout for {steamid}")

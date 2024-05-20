@@ -19,12 +19,12 @@ async def updating_players_rank(steamids: list, from_local=True, update_steam_in
     progress_bar.close()
 
 
-# Finished: 1, 9, 0, 8
+# Finished: 1, 9, 0, 8, 2
 async def main(part):
     logger.info(f"Updating skill points for part {part}")
     with open(f'jsons/steamids_{part}.json', 'r') as f:
         steamids = json.load(f)
-    await updating_players_rank(steamids, from_local=True, update_steam_info=True)
+    await updating_players_rank(steamids[::-1], from_local=True, update_steam_info=True)
 
 
 if __name__ == '__main__':
