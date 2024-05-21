@@ -1,13 +1,10 @@
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app.routers.leaderboard import router
-from app.routers.misc import router as misc_router
 
 app = FastAPI(
-    # docs_url=None,
     title='gokz.top',
 )
 
@@ -21,7 +18,6 @@ app.add_middleware(
 )
 
 app.include_router(router)
-app.include_router(misc_router)
 
 
 @app.get("/", include_in_schema=False)
