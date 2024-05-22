@@ -188,7 +188,7 @@ async def query_player_rank(steamid, mode='kz_timer'):
 
     conn.close()
 
-    player['rank'] = rank['rank'] + 1
+    player['rank'] = rank['rank'] if rank['rank'] else 1
 
     total_player = 225245
     player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
