@@ -20,11 +20,6 @@ async def player_rank(
     steamid: str = Path(..., example="STEAM_1:0:530988200"),
     mode='kz_timer'
 ):
-    if steamid.startswith('http'):
-        steamid_instance = from_url(steamid)
-        steamid = steamid_instance.as_steam2
-    else:
-        steamid = conv_steamid(steamid)
     return await query_player_rank(steamid=steamid, mode=mode)
 
 

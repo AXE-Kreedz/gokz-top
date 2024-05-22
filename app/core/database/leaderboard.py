@@ -167,22 +167,34 @@ async def query_player_rank(steamid, mode='kz_timer'):
     steamid = conv_steamid(steamid)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
-        query = f"""
-            SELECT * FROM (
-                SELECT *, ROW_NUMBER() OVER (ORDER BY pts_skill DESC) as `rank`
-                FROM {table_name}
-            ) as leaderboard_with_ranks
+        # First, get the player with the given steamid
+        player_query = f"""
+            SELECT * FROM {table_name}
             WHERE steamid = %s
         """
-        await cursor.execute(query, (steamid,))
-        result = await cursor.fetchone()
+        await cursor.execute(player_query, (steamid,))
+        player = await cursor.fetchone()
+
+        if player is None:
+            return None
+
+        # Then, count the number of players with a higher pts_skill
+        rank_query = f"""
+            SELECT COUNT(*) as `rank` FROM {table_name}
+            WHERE pts_skill > %s
+        """
+        await cursor.execute(rank_query, (player['pts_skill'],))
+        rank = await cursor.fetchone()
+
     conn.close()
 
+    player['rank'] = rank['rank'] + 1
+
     total_player = 225245
-    result['pts_skill'] = int(result['pts_skill'] * 100) / 100.0
-    result['percentage'] = "{:.3%}".format(result['rank'] / total_player)
-    result['steamid64'] = str(conv_steamid(result['steamid'], 64))
-    return result if result else None
+    player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
+    player['percentage'] = "{:.3%}".format(player['rank'] / total_player)
+    player['steamid64'] = str(conv_steamid(player['steamid'], 64))
+    return player
 
 
 async def get_total_players(mode='kz_timer'):

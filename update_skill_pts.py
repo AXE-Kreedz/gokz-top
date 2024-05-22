@@ -19,21 +19,24 @@ async def updating_players_rank(steamids: list, from_local=True, update_steam_in
     progress_bar.close()
 
 
-# Finished: 1, 9, 0, 8, 2
-async def main(part):
+# Finished: 1, 9, 0, 8, 2 [ 3, 4, 5, 6, 7
+async def main(part, num=None):
     logger.info(f"Updating skill points for part {part}")
     with open(f'jsons/steamids_{part}.json', 'r') as f:
         steamids = json.load(f)
-    await updating_players_rank(steamids[::-1], from_local=True, update_steam_info=True)
+    if num:
+        steamids = steamids[:num]
+    await updating_players_rank(steamids, from_local=True, update_steam_info=True)
 
 
 if __name__ == '__main__':
     logger.setLevel('WARNING')
     parser = argparse.ArgumentParser(description="Update Player Skill Points")
     parser.add_argument('part', type=int)
+    parser.add_argument('--num', type=int, default=None)
     args = parser.parse_args()
     try:
-        asyncio.run(main(args.part))
+        asyncio.run(main(args.part, args.num))
     except KeyboardInterrupt:
         logger.warning('Exiting...')
         time.sleep(1)
