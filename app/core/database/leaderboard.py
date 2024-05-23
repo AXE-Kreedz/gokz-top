@@ -3,7 +3,7 @@ import aiomysql
 from app.core.utils.steam_user import conv_steamid
 from config import DB2_CONFIG
 
-TOLERANCE = 0.0001
+TOLERANCE = 0.00001
 
 TOTAL_PLAYER = {
     'kz_timer': 225245,
@@ -151,17 +151,18 @@ async def update_player_rank(player_data, mode='kz_timer'):
 
 async def query_leaderboard(offset=0, limit=20, mode='kz_timer'):
     table_name = get_table_name(mode)
+    total_player = TOTAL_PLAYER[mode]
+
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
         query = f"""
             SELECT * FROM {table_name}
-            ORDER BY pts_skill DESC, steamid DESC 
+            ORDER BY pts_skill DESC, steamid DESC
             LIMIT %s OFFSET %s
         """
         await cursor.execute(query, (limit, offset))
         result = await cursor.fetchall()
     conn.close()
-    total_player = 225245
     for i, player in enumerate(result, start=offset + 1):
         player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
         player['rank'] = i
@@ -191,10 +192,11 @@ async def query_player_rank(steamid, mode='kz_timer'):
                   (pts_skill BETWEEN %s AND %s AND steamid > %s)
         """
 
-        await cursor.execute(rank_query, (player['pts_skill'],
+        await cursor.execute(rank_query, (player['pts_skill'] + 0.00001,
                                           player['pts_skill'] - TOLERANCE,
                                           player['pts_skill'] + TOLERANCE,
-                                          steamid))
+                                          steamid
+                                          ))
         rank = await cursor.fetchone()
 
     conn.close()
