@@ -3,6 +3,14 @@ import aiomysql
 from app.core.utils.steam_user import conv_steamid
 from config import DB2_CONFIG
 
+TOLERANCE = 0.0001
+
+TOTAL_PLAYER = {
+    'kz_timer': 225245,
+    'kz_simple': 225245,
+    'kz_vanilla': 225245,
+}
+
 
 def get_table_name(mode):
     if mode == 'kz_timer':
@@ -147,7 +155,7 @@ async def query_leaderboard(offset=0, limit=20, mode='kz_timer'):
     async with conn.cursor(aiomysql.DictCursor) as cursor:
         query = f"""
             SELECT * FROM {table_name}
-            ORDER BY pts_skill DESC
+            ORDER BY pts_skill DESC, steamid DESC 
             LIMIT %s OFFSET %s
         """
         await cursor.execute(query, (limit, offset))
@@ -167,7 +175,6 @@ async def query_player_rank(steamid, mode='kz_timer'):
     steamid = conv_steamid(steamid)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
-        # First, get the player with the given steamid
         player_query = f"""
             SELECT * FROM {table_name}
             WHERE steamid = %s
@@ -178,17 +185,21 @@ async def query_player_rank(steamid, mode='kz_timer'):
         if player is None:
             return None
 
-        # Then, count the number of players with a higher pts_skill
         rank_query = f"""
             SELECT COUNT(*) as `rank` FROM {table_name}
-            WHERE pts_skill > %s
+            WHERE pts_skill > %s OR 
+                  (pts_skill BETWEEN %s AND %s AND steamid > %s)
         """
-        await cursor.execute(rank_query, (player['pts_skill'],))
+
+        await cursor.execute(rank_query, (player['pts_skill'],
+                                          player['pts_skill'] - TOLERANCE,
+                                          player['pts_skill'] + TOLERANCE,
+                                          steamid))
         rank = await cursor.fetchone()
 
     conn.close()
 
-    player['rank'] = rank['rank'] if rank['rank'] else 1
+    player['rank'] = rank['rank'] + 1
 
     total_player = 225245
     player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
