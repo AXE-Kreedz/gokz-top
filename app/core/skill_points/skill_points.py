@@ -1,14 +1,32 @@
 from collections import Counter
 
-from app.core.utils.kreedz import get_map_tier
+from app.core.utils.kreedz import get_map_tier, get_vnl_map_tier
 
-tier_count = {
-    7: 24,
-    6: 64,
-    5: 66,
-    4: 151,
-    3: 240,
-    'total': 938,
+map_count = {
+    'kz_timer': {
+        7: 24,
+        6: 64,
+        5: 66,
+        4: 151,
+        3: 240,
+        'total': 938,
+    },
+    'kz_simple': {
+        7: 23,
+        6: 61,
+        5: 65,
+        4: 143,
+        3: 236,
+        'total': 922,
+    },
+    'kz_vanilla': {
+        7: 54,
+        6: 49,
+        5: 66,
+        4: 109,
+        3: 118,
+        'total': 531,
+    },
 }
 
 
@@ -21,8 +39,10 @@ def calc_player_data(rcds):
     most_played_server = server_counts.most_common(1)[0][0]
     player_data['most_played_server'] = most_played_server
 
+    get_map_tier_func = get_vnl_map_tier if rcds[0]['mode'] == 'kz_vanilla' else get_map_tier
+
     for tier in range(3, 8):
-        tier_records = [rcd for rcd in rcds if get_map_tier(rcd['map_name']) == tier]
+        tier_records = [rcd for rcd in rcds if get_map_tier_func(rcd['map_name']) == tier]
         pts_avgs[f'pts_avg_t{tier}'] = int(
             sum(rcd['points'] for rcd in tier_records) / len(tier_records) if tier_records else 0)
         counts[f'count_t{tier}'] = len(set(rcd['map_name'] for rcd in tier_records))
@@ -34,11 +54,11 @@ def calc_player_data(rcds):
         'count_p800': sum(1 for rcd in rcds if 900 > rcd['points'] >= 800),
         'count': len(set(rcd['map_name'] for rcd in rcds)),
         'count_t567_p900': len(
-            [rcd['id'] for rcd in rcds if get_map_tier(rcd['map_name']) >= 5 and rcd['points'] > 900]),
+            [rcd['id'] for rcd in rcds if get_map_tier_func(rcd['map_name']) >= 5 and rcd['points'] > 900]),
         'count_t567_p800': len(
-            [rcd['id'] for rcd in rcds if get_map_tier(rcd['map_name']) >= 5 and rcd['points'] > 800]),
+            [rcd['id'] for rcd in rcds if get_map_tier_func(rcd['map_name']) >= 5 and rcd['points'] > 800]),
         'count_t567_pro': len(
-            [rcd['id'] for rcd in rcds if get_map_tier(rcd['map_name']) >= 5 and rcd['teleports'] == 0]),
+            [rcd['id'] for rcd in rcds if get_map_tier_func(rcd['map_name']) >= 5 and rcd['teleports'] == 0]),
     })
 
     pts_avgs['pts_avg'] = int(sum(rcd['points'] for rcd in rcds) / len(rcds) if rcds else 0)
@@ -53,9 +73,16 @@ def calc_player_data(rcds):
     return {**player_data, **pts_avgs, **counts}
 
 
-def calc_skill_pts(rcds, total_count_map=tier_count['total'], total_count_map5=tier_count[5],
-                   total_count_map6=tier_count[6], total_count_map7=tier_count[7],
-                   total_count_map567=tier_count[5] + tier_count[6] + tier_count[7]):
+def calc_skill_pts(rcds):
+
+    mode = rcds[0]['mode']
+    tier_count = map_count[mode]
+    total_count_map = tier_count['total']
+    total_count_map5 = tier_count[5]
+    total_count_map6 = tier_count[6]
+    total_count_map7 = tier_count[7]
+    total_count_map567 = tier_count[5] + tier_count[6] + tier_count[7]
+
     player_data = calc_player_data(rcds)
     formula = {
         'root': 8,

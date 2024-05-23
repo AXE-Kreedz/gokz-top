@@ -8,7 +8,7 @@ from app.core.utils.steam_user import get_steam_user_info
 
 async def update_player_skill_pts(steamid: str | int, mode='kz_timer', from_local=False, update_steam_info=True):
     if from_local:
-        records = await fetch_pb_records(steamid)
+        records = await fetch_pb_records(steamid, mode)
     else:
         records = await get_personal_all_records(steamid, mode, True)
         records = filter_pb_records(records)
