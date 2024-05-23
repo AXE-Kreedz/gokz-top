@@ -5,10 +5,19 @@ from config import DB2_CONFIG
 
 TOLERANCE = 0.00001
 TOTAL_PLAYER = {
-    'kz_timer': 225245,
-    'kz_simple': 225245,
-    'kz_vanilla': 225245,
+    'kz_timer': 455283,
+    'kz_simple': 36609,
+    'kz_vanilla': 19345,
 }
+
+
+def get_table_name(mode):
+    if mode == 'kz_timer':
+        return 'leaderboard'
+    elif mode == 'kz_simple':
+        return 'leaderboard_skz'
+    elif mode == 'kz_vanilla':
+        return 'leaderboard_vnl'
 
 
 async def get_all_points(mode='kz_timer'):
@@ -23,15 +32,6 @@ async def get_all_points(mode='kz_timer'):
     conn.close()
     result = [row[0] for row in result]
     return result
-
-
-def get_table_name(mode):
-    if mode == 'kz_timer':
-        return 'leaderboard'
-    elif mode == 'kz_simple':
-        return 'leaderboard_skz'
-    elif mode == 'kz_vanilla':
-        return 'leaderboard_vnl'
 
 
 async def search_player_by_name(name) -> list:

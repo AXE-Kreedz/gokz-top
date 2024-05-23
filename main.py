@@ -2,7 +2,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
+from app.core.middleware.redis_cache import clear_cache
 from app.routers.leaderboard import router
 
 
@@ -20,6 +23,13 @@ app.add_middleware(
     expose_headers=["*"],
 )
 app.include_router(router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(clear_cache, CronTrigger(hour=8, minute=0))
+    scheduler.start()
 
 
 @app.get("/", include_in_schema=False)
