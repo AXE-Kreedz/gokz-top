@@ -1,13 +1,14 @@
-import aiomysql
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from app.routers.leaderboard import router
-from config import DB2_CONFIG
+
 
 app = FastAPI(
     title='gokz.top',
+    description='GOKZ TOP Leaderboard API',
 )
 
 app.add_middleware(

@@ -4,12 +4,25 @@ from app.core.utils.steam_user import conv_steamid
 from config import DB2_CONFIG
 
 TOLERANCE = 0.00001
-
 TOTAL_PLAYER = {
     'kz_timer': 225245,
     'kz_simple': 225245,
     'kz_vanilla': 225245,
 }
+
+
+async def get_all_points(mode='kz_timer'):
+    table_name = get_table_name(mode)
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor() as cursor:
+        query = f"""
+            SELECT pts_skill FROM {table_name}
+        """
+        await cursor.execute(query)
+        result = await cursor.fetchall()
+    conn.close()
+    result = [row[0] for row in result]
+    return result
 
 
 def get_table_name(mode):
@@ -203,7 +216,7 @@ async def query_player_rank(steamid, mode='kz_timer'):
 
     player['rank'] = rank['rank'] + 1
 
-    total_player = 225245
+    total_player = TOTAL_PLAYER[mode]
     player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
     player['percentage'] = "{:.3%}".format(player['rank'] / total_player)
     player['steamid64'] = str(conv_steamid(player['steamid'], 64))

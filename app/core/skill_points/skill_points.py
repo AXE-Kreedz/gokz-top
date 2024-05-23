@@ -166,22 +166,32 @@ def calc_skill_pts(rcds):
 
 
 def get_rank_name(skill_pts):
-    pts = skill_pts
-    if pts >= 9.0:
-        return 'Legend'
-    elif pts >= 8.0:
-        return 'Master'
-    elif pts >= 7.0:
-        return 'Pro'
-    elif pts >= 6.0:
-        return 'Expert'
-    elif pts >= 5.0:
-        return 'Skilled'
-    elif pts >= 4.0:
-        return 'Regular'
-    elif pts >= 3.0:
-        return 'Casual'
-    elif pts >= 2.5:
-        return 'Beginner'
-    else:
-        return 'New'
+    rank_names = {
+        9.0: 'Legend',
+        8.0: 'Master',
+        7.0: 'Pro',
+        6.0: 'Expert',
+        5.5: 'Skilled',
+        5.2: 'Regular',
+        4.8: 'Casual',
+        4.5: 'Beginner',
+    }
+
+    for pts, rank in reversed(rank_names.items()):
+        if skill_pts >= pts:
+            return rank
+
+    return 'New'
+
+
+"""
+10% percentile: 3.8958
+20% percentile: 4.2781
+30% percentile: 4.5188
+40% percentile: 4.6960
+50% percentile: 4.8428
+60% percentile: 4.9817
+70% percentile: 5.1206
+80% percentile: 5.2737
+90% percentile: 5.4775
+"""
