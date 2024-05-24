@@ -177,7 +177,7 @@ def get_rank_name(skill_pts):
         4.5: 'Beginner',
     }
 
-    for pts, rank in reversed(rank_names.items()):
+    for pts, rank in rank_names.items():
         if skill_pts >= pts:
             return rank
 

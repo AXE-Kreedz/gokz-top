@@ -51,11 +51,27 @@ async def search_player(nickname: str, redis=Depends(get_redis_conn)):
 
 
 @router.put('/leaderboard/{steamid}')
-async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn)):
+async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn), return_data: bool = True):
     steamid = conv_steamid(steamid)
+
     before = await query_player_rank(steamid=steamid)
     await update_player_skill_pts(steamid=steamid, mode=mode)
     after = await query_player_rank(steamid=steamid)
 
     await redis.delete(f"player_rank:{steamid}:{mode}")
+
+    page_size = 30
+
+    if before['rank'] != after['rank']:
+        rank_to_delete_after = min(before['rank'], after['rank'])
+        all_cache_keys = await redis.keys(f"leaderboard:*:*:{mode}")
+        start_of_rank_page = rank_to_delete_after // page_size * page_size
+        for key in all_cache_keys:
+            _, offset, _, _ = key.split(':')
+            if int(offset) >= start_of_rank_page:
+                await redis.delete(key)
+    else:
+        cache_key = f"leaderboard:{before['rank'] // page_size * page_size}:{page_size}:{mode}"
+        await redis.delete(cache_key)
+
     return {'before': before, 'after': after}
