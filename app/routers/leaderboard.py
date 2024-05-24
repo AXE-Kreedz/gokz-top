@@ -50,7 +50,7 @@ async def search_player(nickname: str, redis=Depends(get_redis_conn)):
     return data
 
 
-@router.put('/leaderboard/{steamid}')
+@router.put('/leaderboard/{steamid}', include_in_schema=False)
 async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn), return_data: bool = True):
     steamid = conv_steamid(steamid)
 
