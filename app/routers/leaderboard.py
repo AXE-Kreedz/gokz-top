@@ -63,12 +63,12 @@ async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:5309882
     page_size = 30
 
     if before['rank'] != after['rank']:
-        rank_to_delete_after = min(before['rank'], after['rank'])
+        start_of_rank_page = min(before['rank'], after['rank']) // page_size * page_size
+        end_of_rank_page = max(before['rank'], after['rank']) // page_size * page_size
         all_cache_keys = await redis.keys(f"leaderboard:*:*:{mode}")
-        start_of_rank_page = rank_to_delete_after // page_size * page_size
         for key in all_cache_keys:
-            _, offset, _, _ = key.split(':')
-            if int(offset) >= start_of_rank_page:
+            offset = int(key.split(':')[1])
+            if start_of_rank_page <= offset < end_of_rank_page:
                 await redis.delete(key)
     else:
         cache_key = f"leaderboard:{before['rank'] // page_size * page_size}:{page_size}:{mode}"

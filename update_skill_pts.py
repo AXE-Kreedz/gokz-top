@@ -19,13 +19,12 @@ async def updating_players_rank(steamids: list, from_local=True, update_steam_in
     progress_bar.close()
 
 
-# Finished: 1, 9, 0, 8, 2 [ 3, 4, 5, 6, 7
 async def main(part, num=None):
     logger.info(f"Updating skill points for part {part}")
     with open(f'jsons/steamids_{part}.json', 'r') as f:
         steamids = json.load(f)
-    if num:
-        steamids = steamids[:num]
+
+    steamids = steamids[19999:30000]
     await updating_players_rank(steamids, from_local=True, update_steam_info=True)
 
 
