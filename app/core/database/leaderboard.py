@@ -5,9 +5,9 @@ from config import DB2_CONFIG
 
 TOLERANCE = 0.00001
 TOTAL_PLAYER = {
-    'kz_timer': 455283,
-    'kz_simple': 36609,
-    'kz_vanilla': 19345,
+    'kz_timer': 455292,
+    'kz_simple': 35506,
+    'kz_vanilla': 18304,
 }
 
 
@@ -18,6 +18,21 @@ def get_table_name(mode):
         return 'leaderboard_skz'
     elif mode == 'kz_vanilla':
         return 'leaderboard_vnl'
+
+
+async def get_processed_steamids(mode='kz_timer'):
+    table_name = get_table_name(mode)
+    conn = await aiomysql.connect(**DB2_CONFIG)
+    async with conn.cursor() as cursor:
+        query = f"""
+            SELECT steamid
+            FROM {table_name}
+            WHERE total_points > 0;
+        """
+        await cursor.execute(query)
+        result = await cursor.fetchall()
+    conn.close()
+    return [row[0] for row in result]
 
 
 async def get_all_points(mode='kz_timer'):
@@ -34,13 +49,14 @@ async def get_all_points(mode='kz_timer'):
     return result
 
 
-async def search_player_by_name(name) -> list:
+async def search_player_by_name(name, mode='kz_timer') -> list:
+    table_name = get_table_name(mode)
     try:
         steamid = conv_steamid(name)
     except ValueError:
         steamid = None
     if steamid:
-        data = await query_player_rank(steamid)
+        data = await query_player_rank(steamid, mode)
         if data:
             return [{
                 'name': data['name'],
@@ -53,23 +69,23 @@ async def search_player_by_name(name) -> list:
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
         # Query for exact matches
-        exact_query = """
-            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+        exact_query = f"""
+            SELECT name, steamid, pts_skill, avatar_hash FROM {table_name}
             WHERE name = %s LIMIT 10
         """
         await cursor.execute(exact_query, (name,))
         exact_result = await cursor.fetchall()
 
-        startswith_query = """
-            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+        startswith_query = f"""
+            SELECT name, steamid, pts_skill, avatar_hash FROM {table_name}
             WHERE name LIKE %s LIMIT 10
         """
         await cursor.execute(startswith_query, (name + '%',))
         startswith_result = await cursor.fetchall()
 
         # Query for partial matches
-        partial_query = """
-            SELECT name, steamid, pts_skill, avatar_hash FROM leaderboard
+        partial_query = f"""
+            SELECT name, steamid, pts_skill, avatar_hash FROM {table_name}
             WHERE name LIKE %s LIMIT 10
         """
         await cursor.execute(partial_query, ('%' + name + '%',))
@@ -88,11 +104,12 @@ async def search_player_by_name(name) -> list:
     return result
 
 
-async def get_steamids_with_empty_avatar():
+async def get_steamids_with_empty_avatar(mode='kz_timer'):
+    table_name = get_table_name(mode)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor() as cursor:
-        query = """
-            SELECT steamid FROM leaderboard
+        query = f"""
+            SELECT steamid FROM {table_name}
             WHERE avatar_hash = ''
             ORDER BY pts_skill DESC
         """
@@ -102,15 +119,16 @@ async def get_steamids_with_empty_avatar():
     return [row[0] for row in result]
 
 
-async def update_avatar_hash(steamid, avatar_hash):
+async def update_avatar_hash(mode, steamid, avatar_hash, name):
+    table_name = get_table_name(mode)
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor() as cursor:
-        query = """
-            UPDATE leaderboard
-            SET avatar_hash = %s
+        query = f"""
+            UPDATE {table_name}
+            SET avatar_hash = %s, name = %s
             WHERE steamid = %s
         """
-        await cursor.execute(query, (avatar_hash, steamid))
+        await cursor.execute(query, (avatar_hash, name, steamid))
         await conn.commit()
     conn.close()
 

@@ -13,7 +13,7 @@ from app.core.globalapi import TooManyRequestsException
 from app.core.globalapi.globalapi import get_personal_all_records
 
 
-async def update_personal_records(steamids, cache=True, mode='kz_timer'):
+async def update_personal_records(steamids, cache=True):
     if not isinstance(steamids, list):
         steamids = [steamids]
     processed_steamids = set()
@@ -29,7 +29,7 @@ async def update_personal_records(steamids, cache=True, mode='kz_timer'):
             data = None
             while data is None:
                 try:
-                    data = await get_personal_all_records(steamid, mode=mode)
+                    data = await get_personal_all_records(steamid, 'kz_vanilla')
                 except TooManyRequestsException as e:
                     pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
                     pbar.set_description(f"Updating {steamid} {e}", refresh=True)
@@ -47,11 +47,15 @@ async def update_personal_records(steamids, cache=True, mode='kz_timer'):
 
 
 async def main(part=0, reverse=False):
-    with open(f'jsons/steamids_skz_{part}.json', 'r') as f:
-        steamids = json.load(f)
-    if reverse:
-        steamids = steamids[::-1]
-    await update_personal_records(steamids, mode='kz_simple')
+    with open(f'jsons/steamids_skz_1.json', 'r') as f:
+        steamids = list(set(json.load(f)))
+    # if reverse:
+    #     steamids = steamids[::-1]
+    if part == 0:
+        steamids = steamids[:len(steamids) // 2][::-1]
+    elif part == 1:
+        steamids = steamids[len(steamids) // 2:]
+    await update_personal_records(steamids)
 
 
 if __name__ == '__main__':

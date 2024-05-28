@@ -77,16 +77,17 @@ async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None
     return records
 
 
-async def get_players_steamids(mode='kz_timer'):
+async def get_players_steamids(mode='kz_timer', limit=100, offset=0):
     conn = await aiomysql.connect(**DB2_CONFIG)
     async with conn.cursor(aiomysql.DictCursor) as cursor:
         select_query = f"""
             SELECT DISTINCT steam_id
             FROM records
             WHERE mode = %s
+            LIMIT %s OFFSET %s
         """
+        await cursor.execute(select_query, (mode, limit, offset))
 
-        await cursor.execute(select_query, (mode,))
         steam_ids = [row['steam_id'] for row in await cursor.fetchall()]
     conn.close()
     return steam_ids

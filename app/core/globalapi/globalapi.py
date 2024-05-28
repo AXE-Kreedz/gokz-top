@@ -84,7 +84,6 @@ async def get_personal_all_records(steamid, mode=None, update_db=False) -> list:
             get_personal_global_records(steamid, "kz_vanilla", False),
         ])
     results = await asyncio.gather(*tasks)
-
     records = [record for result in results if result is not None for record in result]
     if update_db:
         await update_points(records)

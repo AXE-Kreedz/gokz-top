@@ -4,11 +4,12 @@ import sys
 
 from tqdm import tqdm
 from datetime import datetime, timedelta
+import requests
 
 from app.core.database.records import get_latest_record_id, insert_records
-
 from app import logger
 from app.core.globalapi.globalapi import get_record, personal_best
+from app.routers.leaderboard import update_player_rank
 
 
 async def update_records(end_id=30_000_000):
@@ -35,6 +36,10 @@ async def update_records(end_id=30_000_000):
                 time.sleep(60)
             if pb.get('id') == data['id']:
                 data['points'] = pb['points']
+                try:
+                    requests.put(f'http://localhost:8000/leaderboard/{data['steam_id']}?mode={data['mode']}')
+                except Exception as e:
+                    logger.warning(e)
             await insert_records(data)
 
             dt = datetime.fromisoformat(data['created_on'])

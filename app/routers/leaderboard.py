@@ -39,19 +39,19 @@ async def player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), m
 
 
 @router.get('/leaderboard/search/{nickname}')
-async def search_player(nickname: str, redis=Depends(get_redis_conn)):
-    cache_key = f"search_player:{nickname}"
+async def search_player(nickname: str, mode='kz_timer', redis=Depends(get_redis_conn)):
+    cache_key = f"search_player:{nickname}:{mode}"
     cached_data = await redis.get(cache_key)
     if cached_data:
         return JSONResponse(content=json.loads(cached_data))
 
-    data = await search_player_by_name(nickname)
+    data = await search_player_by_name(nickname, mode=mode)
     await redis.set(cache_key, json.dumps(data, cls=DateTimeEncoder))
     return data
 
 
 @router.put('/leaderboard/{steamid}', include_in_schema=False)
-async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn), return_data: bool = True):
+async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn)):
     steamid = conv_steamid(steamid)
 
     before = await query_player_rank(steamid=steamid)
@@ -61,6 +61,9 @@ async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:5309882
     await redis.delete(f"player_rank:{steamid}:{mode}")
 
     page_size = 30
+
+    if before is None:
+        return {'before': None, 'after': after}
 
     if before['rank'] != after['rank']:
         start_of_rank_page = min(before['rank'], after['rank']) // page_size * page_size
