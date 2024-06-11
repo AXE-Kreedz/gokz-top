@@ -17,7 +17,7 @@ async def update_personal_records(steamids, cache=True):
     if not isinstance(steamids, list):
         steamids = [steamids]
     processed_steamids = set()
-    processed_file = 'jsons/processed_steamids.json'
+    processed_file = '../jsons/processed_steamids.json'
     if cache:
         if os.path.exists(processed_file):
             with open(processed_file, 'r') as f:
@@ -47,7 +47,7 @@ async def update_personal_records(steamids, cache=True):
 
 
 async def main(part=0, reverse=False):
-    with open(f'jsons/steamids_skz_1.json', 'r') as f:
+    with open(f'../jsons/steamids_skz_1.json', 'r') as f:
         steamids = list(set(json.load(f)))
     # if reverse:
     #     steamids = steamids[::-1]

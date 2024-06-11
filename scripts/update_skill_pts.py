@@ -21,14 +21,14 @@ async def updating_players_rank(steamids: list, mode, from_local=True, update_st
 
 async def main(part, num=None):
     logger.info(f"Updating skill points for part {part}")
-    with open(f'jsons/steamids_vnl.json', 'r') as f:
+    with open(f'jsons/steamids_skz_{part}.json', 'r') as f:
         steamids = json.load(f)
 
     steamids = steamids
 
     # with open('jsons/steamids_vnl.json', 'r') as f:
     #     steamids = json.load(f)
-    await updating_players_rank(steamids, mode='kz_vanilla', from_local=True, update_steam_info=False, step=4)
+    await updating_players_rank(steamids, mode='kz_simple', from_local=True, update_steam_info=False, step=4)
 
 
 if __name__ == '__main__':

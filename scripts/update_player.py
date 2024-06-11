@@ -17,7 +17,7 @@ async def update_personal_records(steamids, cache=True, mode='kz_timer'):
     if not isinstance(steamids, list):
         steamids = [steamids]
     processed_steamids = set()
-    processed_file = 'jsons/processed_steamids.json'
+    processed_file = '../jsons/processed_steamids.json'
     if cache:
         if os.path.exists(processed_file):
             with open(processed_file, 'r') as f:

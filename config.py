@@ -25,3 +25,4 @@ DB2_CONFIG = {
 }
 
 STEAM_API_KEY = os.getenv("STEAM_API_KEY")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
