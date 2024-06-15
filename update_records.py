@@ -28,23 +28,24 @@ async def update_records(end_id=30_000_000):
                     logger.warning(e)
                     pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
                     time.sleep(300)
-            while True:
-                pb = await personal_best(data['steamid64'], data['map_id'], data['mode'], True if data['teleports'] else False)
-                if pb:
-                    break
-                pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
-                time.sleep(60)
-            if pb.get('id') == data['id']:
-                data['points'] = pb['points']
-                try:
-                    requests.put(f'http://localhost:8000/leaderboard/{data['steam_id']}?mode={data['mode']}')
-                except Exception as e:
-                    logger.warning(e)
+            if data['stage'] == 0:
+                while True:
+                    pb = await personal_best(data['steamid64'], data['map_id'], data['mode'], True if data['teleports'] else False)
+                    if pb:
+                        break
+                    pbar.set_postfix({'last': datetime.now().strftime('%H:%M:%S')})
+                    time.sleep(60)
+                if pb.get('id') == data['id']:
+                    data['points'] = pb['points']
+                    try:
+                        requests.put(f'http://localhost:8000/leaderboard/{data['steam_id']}?mode={data['mode']}')
+                    except Exception as e:
+                        logger.warning(e)
             await insert_records(data)
 
             dt = datetime.fromisoformat(data['created_on'])
             dt = dt + timedelta(hours=8)
-            pbar.set_description(f"Updating {record_id:,} - {data['points']}pts - {dt.strftime('%H:%M:%S')}")
+            pbar.set_description(f"Updated {record_id} - {data['points']}pts - {dt.strftime('%H:%M:%S')}")
             pbar.update(1)
 
 

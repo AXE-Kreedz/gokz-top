@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from app.core.middleware.redis_cache import clear_cache
 from app.routers.leaderboard import router
 
 app = FastAPI(
@@ -20,11 +19,6 @@ app.add_middleware(
     expose_headers=["*"],
 )
 app.include_router(router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    await clear_cache()
 
 
 @app.get("/", include_in_schema=False)

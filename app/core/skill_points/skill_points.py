@@ -41,7 +41,7 @@ def calc_player_data(rcds):
 
     get_map_tier_func = get_vnl_map_tier if rcds[0]['mode'] == 'kz_vanilla' else get_map_tier
 
-    for tier in range(3, 8):
+    for tier in range(0, 8):
         tier_records = [rcd for rcd in rcds if get_map_tier_func(rcd['map_name']) == tier]
         pts_avgs[f'pts_avg_t{tier}'] = int(
             sum(rcd['points'] for rcd in tier_records) / len(tier_records) if tier_records else 0)

@@ -1,6 +1,7 @@
 import aiomysql
 
 from app import logger
+from app.core.utils.kreedz import get_map_tier
 from config import DB2_CONFIG, MAP_TIERS
 from app.core.utils.steam_user import conv_steamid
 
@@ -13,6 +14,22 @@ async def get_latest_record_id():
             )
             latest_id = await cur.fetchone()
             return latest_id[0]
+
+
+async def get_record_by_server_id(server_id):
+    async with aiomysql.connect(**DB2_CONFIG) as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            sql = """
+                SELECT records.*, leaderboard.name as name
+                FROM records
+                LEFT JOIN leaderboard ON records.steam_id = leaderboard.steamid
+                WHERE records.server_id = %s
+                ORDER BY records.id DESC
+                LIMIT 20;
+            """
+            await cur.execute(sql, [server_id])
+            records = await cur.fetchall()
+        return records
 
 
 def filter_pb_records(records):
@@ -42,6 +59,10 @@ def filter_pb_records(records):
 
 async def fetch_pb_records(steam_id, mode='kz_timer'):
     records = await fetch_personal_records(steam_id, mode)
+
+    for record in records:
+        record['tier'] = get_map_tier(record['map_name'])
+
     return filter_pb_records(records)
 
 

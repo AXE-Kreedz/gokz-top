@@ -1,24 +1,52 @@
+from datetime import timedelta, datetime
+
+import pytz
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
 from fastapi import APIRouter, Path, Depends, HTTPException
-from fastapi.responses import JSONResponse
 
 from app import logger
 from app.core.database.leaderboard import query_leaderboard, query_player_rank, search_player_by_name
-from app.core.database.records import fetch_personal_records
-from app.core.middleware.redis_cache import get_redis_conn, DateTimeEncoder
+from app.core.database.records import fetch_personal_records, fetch_pb_records, get_record_by_server_id
+from app.core.globalapi.stats import Stats
+from app.core.middleware.redis_cache import get_redis_conn
 from app.core.skill_points.update import update_player_skill_pts
 from app.core.utils.steam_user import conv_steamid
-import json
-
 from config import WEBHOOK_URL
 
 router = APIRouter()
+
+
+@router.get("/records/stats/{steamid}")
+async def get_player_stats(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer'):
+    stats = Stats(steamid=steamid, mode=mode)
+    await stats.init()
+    return stats.__dict__
 
 
 @router.get('/records/{steamid}')
 async def player_records(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer', map_name: str = None, has_tp: bool = None):
     steamid = conv_steamid(steamid)
     records = await fetch_personal_records(steamid, mode, map_name=map_name, has_tp=has_tp)
+    return records
+
+
+@router.get('/records/top/{steamid}')
+async def player_pb_records(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer', has_tp: bool = None):
+    steamid = conv_steamid(steamid)
+    records = await fetch_pb_records(steamid, mode)
+    return records
+
+
+@router.get('/records')
+async def player_records(server_id=1683):
+    records = await get_record_by_server_id(server_id=server_id)
+
+    tz = pytz.timezone('Asia/Shanghai')
+    for record in records:
+        created_on_utc = datetime.strptime(record['created_on'], '%Y-%m-%dT%H:%M:%S')
+        created_on_local = created_on_utc.replace(tzinfo=pytz.utc).astimezone(tz)
+        record['created_on'] = created_on_local.strftime('%Y-%m-%d %H:%M:%S')
+
     return records
 
 
