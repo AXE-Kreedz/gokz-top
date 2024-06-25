@@ -199,6 +199,7 @@ async def query_leaderboard(offset=0, limit=20, mode='kz_timer'):
         player['rank'] = i
         player['percentage'] = "{:.3%}".format(i / total_player)
         player['steamid64'] = str(conv_steamid(player['steamid'], 64))
+        player['mode'] = mode
     return result
 
 
@@ -238,6 +239,7 @@ async def query_player_rank(steamid, mode='kz_timer'):
     player['pts_skill'] = int(player['pts_skill'] * 100) / 100.0
     player['percentage'] = "{:.3%}".format(player['rank'] / total_player)
     player['steamid64'] = str(conv_steamid(player['steamid'], 64))
+    player['mode'] = mode
     return player
 
 

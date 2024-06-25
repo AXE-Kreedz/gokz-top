@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import datetime
 
 import pytz
 from discord_webhook import AsyncDiscordWebhook, DiscordEmbed
@@ -10,6 +10,7 @@ from app.core.database.records import fetch_personal_records, fetch_pb_records, 
 from app.core.globalapi.stats import Stats
 from app.core.middleware.redis_cache import get_redis_conn
 from app.core.skill_points.update import update_player_skill_pts
+from app.core.utils.format import format_kzmode
 from app.core.utils.steam_user import conv_steamid
 from config import WEBHOOK_URL
 
@@ -18,6 +19,7 @@ router = APIRouter()
 
 @router.get("/records/stats/{steamid}")
 async def get_player_stats(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer'):
+    mode = format_kzmode(mode)
     stats = Stats(steamid=steamid, mode=mode)
     await stats.init()
     return stats.__dict__
@@ -31,9 +33,9 @@ async def player_records(steamid: str = Path(..., example="STEAM_1:0:530988200")
 
 
 @router.get('/records/top/{steamid}')
-async def player_pb_records(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer', has_tp: bool = None):
+async def player_pb_records(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode: str = 'kz_timer', map_name: str = None, has_tp: bool = None):
     steamid = conv_steamid(steamid)
-    records = await fetch_pb_records(steamid, mode)
+    records = await fetch_pb_records(steamid, mode, map_name=map_name, has_tp=has_tp)
     return records
 
 
@@ -52,6 +54,7 @@ async def player_records(server_id=1683):
 
 @router.get('/leaderboard')
 async def leaderboard(offset: int = 0, limit: int = 20, mode='kz_timer', redis=Depends(get_redis_conn)):
+    mode = format_kzmode(mode)
     if limit > 1000:
         limit = 1000
 
@@ -67,6 +70,7 @@ async def leaderboard(offset: int = 0, limit: int = 20, mode='kz_timer', redis=D
 
 @router.get('/leaderboard/{steamid}')
 async def player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn)):
+    mode = format_kzmode(mode)
 
     # cache_key = f"player_rank:{steamid}:{mode}"
     # cached_data = await redis.get(cache_key)
@@ -81,15 +85,17 @@ async def player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), m
         raise HTTPException(status_code=404, detail="Player not found")
 
     # await redis.set(cache_key, json.dumps(data, cls=DateTimeEncoder))
-
-    await send_webhook(title=data['name'], content=f"Rank: `{data['rank']}`\nsteamid64: `{data['steamid64']}`",
-                       avatar=data['avatar_hash'], url='https://steamcommunity.com/profiles/' + data['steamid64'])
+    #
+    # await send_webhook(title=data['name'], content=f"Rank: `{data['rank']}`\nsteamid64: `{data['steamid64']}`",
+    #                    avatar=data['avatar_hash'], url='https://steamcommunity.com/profiles/' + data['steamid64'])
 
     return data
 
 
 @router.get('/leaderboard/search/{nickname}')
 async def search_player(nickname: str, mode='kz_timer', redis=Depends(get_redis_conn)):
+    mode = format_kzmode(mode)
+
     # cache_key = f"search_player:{nickname}:{mode}"
     # cached_data = await redis.get(cache_key)
     # if cached_data:
@@ -102,6 +108,7 @@ async def search_player(nickname: str, mode='kz_timer', redis=Depends(get_redis_
 
 @router.put('/leaderboard/{steamid}', include_in_schema=False)
 async def update_player_rank(steamid: str = Path(..., example="STEAM_1:0:530988200"), mode='kz_timer', redis=Depends(get_redis_conn)):
+    mode = format_kzmode(mode)
     steamid = conv_steamid(steamid)
 
     before = await query_player_rank(steamid=steamid)

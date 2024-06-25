@@ -11,6 +11,76 @@ from app.core.utils.kreedz import get_vnl_map_tier, get_map_tier
 from app.core.utils.steam_user import conv_steamid
 
 
+total_maps = {
+    'kz_timer': {
+        'tp': {
+            1: 121,
+            2: 272,
+            3: 239,
+            4: 150,
+            5: 65,
+            6: 63,
+            7: 23,
+            'total': 933
+        },
+        'pro': {
+            1: 121,
+            2: 272,
+            3: 240,
+            4: 151,
+            5: 66,
+            6: 64,
+            7: 24,
+            'total': 938
+        }
+    },
+    'kz_simple': {
+        'tp': {
+            1: 122,
+            2: 272,
+            3: 235,
+            4: 142,
+            5: 64,
+            6: 60,
+            7: 22,
+            'total': 917
+        },
+        'pro': {
+            1: 122,
+            2: 272,
+            3: 236,
+            4: 143,
+            5: 65,
+            6: 61,
+            7: 23,
+            'total': 922
+        },
+    },
+    'kz_vanilla': {
+        'tp': {
+            1: 32,
+            2: 103,
+            3: 118,
+            4: 109,
+            5: 66,
+            6: 49,
+            7: 54,
+            'total': 531
+        },
+        'pro': {
+            1: 32,
+            2: 103,
+            3: 118,
+            4: 109,
+            5: 66,
+            6: 49,
+            7: 54,
+            'total': 531
+        }
+    }
+}
+
+
 class Stats:
     def __init__(self, steamid, mode='kz_timer'):
         self.steamid: str = conv_steamid(steamid)
@@ -27,21 +97,25 @@ class Stats:
 
         self.stats = None
         self.records: list = []
+        self.total_maps = total_maps[mode]
 
     async def init(self):
         rank_data = await query_player_rank(steamid=self.steamid, mode=self.mode)
         records = await fetch_pb_records(self.steamid, self.mode)
 
-        self.name = rank_data['name']
-        self.avatar_hash = rank_data['avatar_hash']
-        self.rank_name = rank_data['rank_name']
-        self.rank = rank_data['rank']
-        self.percentage = rank_data['percentage']
-        self.rating = rank_data['pts_skill']
-        self.most_played_server = rank_data['most_played_server']
+        if not rank_data:
+            rank_data = {}
 
-        self.records = records
-        self.stats = calc_player_data(self.records)
+        self.name = rank_data.get('name', 'Anonymous')  # If 'name' key doesn't exist, 'Anonymous' will be used
+        self.avatar_hash = rank_data.get('avatar_hash', '')
+        self.rank_name = rank_data.get('rank_name', 'New')
+        self.rank = rank_data.get('rank', 0)
+        self.percentage = rank_data.get('percentage', 0.0)
+        self.rating = rank_data.get('pts_skill', 0.0)
+        self.most_played_server = rank_data.get('most_played_server', '')
+
+        self.records = records if records else []
+        self.stats = calc_player_data(self.records) if self.records else {}
 
 
 def calc_player_data(rcds):

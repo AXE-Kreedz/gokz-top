@@ -20,7 +20,7 @@ async def get_record_by_server_id(server_id):
     async with aiomysql.connect(**DB2_CONFIG) as conn:
         async with conn.cursor(aiomysql.DictCursor) as cur:
             sql = """
-                SELECT records.*, leaderboard.name as name
+                SELECT records.*, leaderboard.name as name, leaderboard.avatar_hash as avatar_hash
                 FROM records
                 LEFT JOIN leaderboard ON records.steam_id = leaderboard.steamid
                 WHERE records.server_id = %s
@@ -32,12 +32,18 @@ async def get_record_by_server_id(server_id):
         return records
 
 
-def filter_pb_records(records):
+def filter_pb_records(records, map_name=None, has_tp=None):
     pb_records = []
     records_by_map = {}
+
     for record in records:
         if record['map_name'] not in MAP_TIERS.keys():
             continue
+        if map_name is not None and record['map_name'] != map_name:
+            continue
+        if has_tp is not None and record['teleports'] > 0 != has_tp:
+            continue
+
         if record['map_name'] not in records_by_map:
             records_by_map[record['map_name']] = {'tp': None, 'pro': None}
 
@@ -57,13 +63,13 @@ def filter_pb_records(records):
     return pb_records
 
 
-async def fetch_pb_records(steam_id, mode='kz_timer'):
+async def fetch_pb_records(steam_id, mode='kz_timer',  map_name=None, has_tp=None):
     records = await fetch_personal_records(steam_id, mode)
 
     for record in records:
         record['tier'] = get_map_tier(record['map_name'])
 
-    return filter_pb_records(records)
+    return filter_pb_records(records, map_name=map_name, has_tp=has_tp)
 
 
 async def fetch_personal_records(steam_id, mode=None, map_name=None, has_tp=None):
